@@ -93,7 +93,8 @@ class trajectory_visualization:
 	#     when receiving joint states
 	#=====================================
 	def joint_states_callback(self, joint_states_msg):
-		transform_mat = self.kdl_kin.forward(joint_angles_msg)
+		joint_angles = joint_angles_msg.position
+		transform_mat = self.kdl_kin.forward(joint_angles)
 		#If the joint has move more than a set threshold, add it to the path message and publish
 		if (abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold) 
 		 & (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold)
