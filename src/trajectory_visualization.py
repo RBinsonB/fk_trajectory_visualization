@@ -3,6 +3,7 @@ import sys
 import rospy
 from trajectory_msgs.msg import JointTrajectory
 from nav_msgs.msg import Path
+from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Point
 from urdf_parser_py.urdf import URDF
@@ -32,10 +33,10 @@ class trajectory_visualization:
 		#Setup subscribers to trajectory message
 		self.trajectory_sub = rospy.Subscriber(self.trajectory_topic, JointTrajectory, self.trajectory_callback)
 		#Setup subscriber to joint pose
-		self.joint_states_sub = rospy.Subscriber(self.joint_states_topic, JointStates, self.joint_states_callback)
+		self.joint_states_sub = rospy.Subscriber(self.joint_states_topic, JointState, self.joint_states_callback)
 
 		# pykdl_utils setup
-		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.end_link)
+		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.tracked_link)
 		self.joint_names = self.kdl_kin.get_joint_names()
 		print("Robot model has "+str(len(self.joint_names))+" joints")
 
@@ -45,7 +46,6 @@ class trajectory_visualization:
 	#=====================================
 	def loadParams(self):
 		#Load robot model
-		rospy.loginfo('Looking for robot_description at '+ns+'robot_description')
 		self.robot_urdf = URDF.from_xml_string(rospy.get_param('robot_description'))
 		#Load trajectory topic name
 		self.trajectory_topic = rospy.get_param('~trajectory_topic', '~trajectory')
@@ -54,7 +54,7 @@ class trajectory_visualization:
 		#Load targeted path topic name
 		self.target_path_topic = rospy.get_param('~target_path_topic', '~target_path')
 		#Load actual path topic name
-		self.actual_path_topic = +rospy.get_param('~actual_path_topic', '~actual_path')
+		self.actual_path_topic = rospy.get_param('~actual_path_topic', '~actual_path')
 
 		#Load maximum number of poses in actual path
 		self.max_poses = rospy.get_param('~max_poses', 1000)
@@ -62,9 +62,9 @@ class trajectory_visualization:
 		self.threshold = rospy.get_param('~movement_threshold', 0.001)
 
 		#Loading tracked joint name
-		self.tracked_link = rospy.get_param('~tracked_link')
+		self.tracked_link = rospy.get_param('~tracked_link', 'gripper_closed_endpoint')
 		#Loading base joint name
-		self.base_link = rospy.get_param('~base_link', 'base_link')
+		self.base_link = rospy.get_param('~base_link', 'base')
 
 	#=====================================
 	#          Callback function 
@@ -95,13 +95,12 @@ class trajectory_visualization:
 	#     when receiving joint states
 	#=====================================
 	def joint_states_callback(self, joint_states_msg):
-		joint_angles = joint_angles_msg.position
+		joint_angles = joint_states_msg.position
+		rospy.loginfo("received joint message with joint angles: "+str(joint_angles))
 		transform_mat = self.kdl_kin.forward(joint_angles)
 		#If the joint has move more than a set threshold, add it to the path message and publish
-		if (abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold) 
-		 & (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold)
-		 & (abs(self.previous_pose_position.z - transform_mat[2,3]) > self.threshold):
-			rospy.logdebug('Exceding threshold, adding pose to path')
+		if ((abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold) or (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold) or (abs(self.previous_pose_position.z - transform_mat[2,3]) > self.threshold)):
+			rospy.loginfo('Exceding threshold, adding pose to path')
 			#Add current pose to path
 			self.actual_path_msg.header.stamp = rospy.Time.now()
 			self.actual_path_msg.header.frame_id = self.base_link
@@ -119,7 +118,7 @@ class trajectory_visualization:
 				self.actual_path_msg.poses = self.actual_path_msg.poses[1:]
 				self.actual_path_msg.poses.append(pose_stamped_msg)
 
-			self.previous_pose_position = pose_msg.pose.position
+			self.previous_pose_position = pose_stamped_msg.pose.position
 			self.actual_path_pub.publish(self.actual_path_msg)
 
 #=====================================
