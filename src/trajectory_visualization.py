@@ -36,6 +36,8 @@ class trajectory_visualization:
 
 		# pykdl_utils setup
 		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.end_link)
+		self.joint_names = self.kdl_kin.get_joint_names()
+		print("Robot model has "+str(len(self.joint_names))+" joints")
 
 	#=====================================
 	#       function for loading
