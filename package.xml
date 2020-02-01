@@ -52,18 +52,20 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>pykdl_utils</build_depend>
-  <build_depend>rospytrajectory_msgs</build_depend>
-  <build_depend>urdf_parser_py</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>trajectory_msgs</build_depend>
+  <build_depend>urdfdom_py</build_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
   <build_export_depend>pykdl_utils</build_export_depend>
-  <build_export_depend>rospytrajectory_msgs</build_export_depend>
-  <build_export_depend>urdf_parser_py</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>trajectory_msgs</build_export_depend>
+  <build_export_depend>urdfdom_py</build_export_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>pykdl_utils</exec_depend>
   <exec_depend>rospytrajectory_msgs</exec_depend>
-  <exec_depend>urdf_parser_py</exec_depend>
+  <exec_depend>urdfdom_py</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

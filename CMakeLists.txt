@@ -11,8 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
   pykdl_utils
-  rospytrajectory_msgs
-  urdf_parser_py
+  rospy
+  trajectory_msgs
+  urdfdom_py
 )
 
 ## System dependencies are found with CMake's conventions
