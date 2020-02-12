@@ -21,10 +21,6 @@ class trajectory_visualization:
 		self.loadParams()
 		self.actual_path_msg = Path()
 		self.previous_pose_position = Point()
-		print('Default pose:')
-		print(self.previous_pose_position.x)
-		print(self.previous_pose_position.y)
-		print(self.previous_pose_position.z)
 
 		#Setup target trajectory path publisher
 		self.target_path_pub = rospy.Publisher(self.target_path_topic, Path, queue_size=10, latch=True)
@@ -38,7 +34,10 @@ class trajectory_visualization:
 		# pykdl_utils setup
 		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.tracked_link)
 		self.joint_names = self.kdl_kin.get_joint_names()
-		print("Robot model has "+str(len(self.joint_names))+" joints")
+		self.number_of_joints = len(self.joint_names)
+		rospy.logdebug("Trajectory visualization: Robot model has "+str(self.number_of_joints)+" joints")
+		rospy.logdebug("Trajectory visualization: Joints are: "+str(self.joint_names))
+		rospy.loginfo("Trajectory visualization ready for robot: "+self.robot_urdf.name)
 
 	#=====================================
 	#       function for loading
@@ -95,32 +94,57 @@ class trajectory_visualization:
 	#     when receiving joint states
 	#=====================================
 	def joint_states_callback(self, joint_states_msg):
-		joint_angles = joint_states_msg.position
-		rospy.loginfo("received joint message with joint angles: "+str(joint_angles))
-		transform_mat = self.kdl_kin.forward(joint_angles)
-		#If the joint has move more than a set threshold, add it to the path message and publish
-		if ((abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold) or (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold) or (abs(self.previous_pose_position.z - transform_mat[2,3]) > self.threshold)):
-			rospy.loginfo('Exceding threshold, adding pose to path')
-			#Add current pose to path
-			self.actual_path_msg.header.stamp = rospy.Time.now()
-			self.actual_path_msg.header.frame_id = self.base_link
-			pose_stamped_msg = PoseStamped()
-			pose_stamped_msg.pose.position.x = transform_mat[0,3]
-			pose_stamped_msg.pose.position.y = transform_mat[1,3]
-			pose_stamped_msg.pose.position.z = transform_mat[2,3]
+		rospy.logdebug("received joint message with joint angles: "+str(joint_states_msg.position))
+		#Process message only enough joint values inside
+		if (len(joint_states_msg.position)) >= self.number_of_joints:
+			joint_angles_list = list(joint_states_msg.position)
+			joint_names_list = list(joint_states_msg.name)
+			#Remap joint values in needed
+			joint_angles = [0] * self.number_of_joints
+			try:
+				for i in range(self.number_of_joints):
+					found = False
+					for j in range(len(joint_names_list)):
+						#If names fit, put in joint_angles and delete from list
+						if self.joint_names[i] == joint_names_list[j]:
+							joint_angles[i] = joint_angles_list[j]
+							del joint_angles_list[j]
+							del joint_names_list[j]
+							found = True
+							break
+					if not found:
+					 	raise Exception("No joint value found for joint "+self.joint_names[i]+", ignoring message")
 
-			#If max number of poses in path has not been reach, just add pose to message
-			if len(self.actual_path_msg.poses) < self.max_poses:
-				self.actual_path_msg.poses.append(pose_stamped_msg)
-			#Else rotate the list to dismiss oldest value and add newer value at the end
-			else :
-				rospy.logdebug('Max number of poses reached, erasing oldest pose')
-				self.actual_path_msg.poses = self.actual_path_msg.poses[1:]
-				self.actual_path_msg.poses.append(pose_stamped_msg)
+				transform_mat = self.kdl_kin.forward(joint_angles)
+				#If the pose has move more than a set threshold, add it to the path message and publish
+				if ((abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold)
+				 or (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold)
+				 or (abs(self.previous_pose_position.z - transform_mat[2,3]) > self.threshold)):
+					rospy.loginfo('Exceding threshold, adding pose to path')
+					#Add current pose to path
+					self.actual_path_msg.header.stamp = rospy.Time.now()
+					self.actual_path_msg.header.frame_id = self.base_link
+					pose_stamped_msg = PoseStamped()
+					pose_stamped_msg.pose.position.x = transform_mat[0,3]
+					pose_stamped_msg.pose.position.y = transform_mat[1,3]
+					pose_stamped_msg.pose.position.z = transform_mat[2,3]
 
-			self.previous_pose_position = pose_stamped_msg.pose.position
-			self.actual_path_pub.publish(self.actual_path_msg)
+					#If max number of poses in path has not been reach, just add pose to message
+					if len(self.actual_path_msg.poses) < self.max_poses:
+						self.actual_path_msg.poses.append(pose_stamped_msg)
+					#Else rotate the list to dismiss oldest value and add newer value at the end
+					else :
+						rospy.logdebug('Max number of poses reached, erasing oldest pose')
+						self.actual_path_msg.poses = self.actual_path_msg.poses[1:]
+						self.actual_path_msg.poses.append(pose_stamped_msg)
 
+					self.previous_pose_position = pose_stamped_msg.pose.position
+					self.actual_path_pub.publish(self.actual_path_msg)
+
+			except ValueError as e:
+				rospy.loginfo("Error: "+e)
+				pass	
+ 
 #=====================================
 #               Main
 #=====================================
