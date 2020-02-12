@@ -23,13 +23,13 @@ class trajectory_visualization:
 		self.previous_pose_position = Point()
 
 		#Setup target trajectory path publisher
-		self.target_path_pub = rospy.Publisher(self.target_path_topic, Path, queue_size=10, latch=True)
+		self.target_path_pub = rospy.Publisher('~target_path', Path, queue_size=10, latch=True)
 		#Setup actual trajectory path publisher
-		self.actual_path_pub = rospy.Publisher(self.actual_path_topic, Path, queue_size=10, latch=True)
+		self.actual_path_pub = rospy.Publisher('~actual_path', Path, queue_size=10, latch=True)
 		#Setup subscribers to trajectory message
-		self.trajectory_sub = rospy.Subscriber(self.trajectory_topic, JointTrajectory, self.trajectory_callback)
+		self.trajectory_sub = rospy.Subscriber('~trajectory', JointTrajectory, self.trajectory_callback)
 		#Setup subscriber to joint pose
-		self.joint_states_sub = rospy.Subscriber(self.joint_states_topic, JointState, self.joint_states_callback)
+		self.joint_states_sub = rospy.Subscriber('joint_states', JointState, self.joint_states_callback)
 
 		# pykdl_utils setup
 		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.tracked_link)
@@ -46,14 +46,6 @@ class trajectory_visualization:
 	def loadParams(self):
 		#Load robot model
 		self.robot_urdf = URDF.from_xml_string(rospy.get_param('robot_description'))
-		#Load trajectory topic name
-		self.trajectory_topic = rospy.get_param('~trajectory_topic', '~trajectory')
-		#Load joint state topic name
-		self.joint_states_topic = rospy.get_param('~joint_states_topic', '/joint_states')
-		#Load targeted path topic name
-		self.target_path_topic = rospy.get_param('~target_path_topic', '~target_path')
-		#Load actual path topic name
-		self.actual_path_topic = rospy.get_param('~actual_path_topic', '~actual_path')
 
 		#Load maximum number of poses in actual path
 		self.max_poses = rospy.get_param('~max_poses', 1000)
