@@ -32,12 +32,14 @@ class trajectory_visualization:
 		self.joint_states_sub = rospy.Subscriber('joint_states', JointState, self.joint_states_callback)
 
 		# pykdl_utils setup
-		self.kdl_kin = KDLKinematics(self.robot_urdf, self.base_link, self.tracked_link)
+		self.root_link = self.robot_urdf.get_root()
+		self.kdl_kin = KDLKinematics(self.robot_urdf, self.root_link, self.tracked_link)
 		self.joint_names = self.kdl_kin.get_joint_names()
 		self.number_of_joints = len(self.joint_names)
 		rospy.logdebug("Trajectory visualization: Robot model has "+str(self.number_of_joints)+" joints")
 		rospy.logdebug("Trajectory visualization: Joints are: "+str(self.joint_names))
 		rospy.loginfo("Trajectory visualization ready for robot: "+self.robot_urdf.name)
+		rospy.loginfo(self.robot_urdf.get_root())
 
 	#=====================================
 	#       function for loading
@@ -53,9 +55,7 @@ class trajectory_visualization:
 		self.threshold = rospy.get_param('~movement_threshold', 0.001)
 
 		#Loading tracked joint name
-		self.tracked_link = rospy.get_param('~tracked_link', 'gripper_closed_endpoint')
-		#Loading base joint name
-		self.base_link = rospy.get_param('~base_link', 'base')
+		self.tracked_link = rospy.get_param('~tracked_link', 'end_effector')
 
 	#=====================================
 	#          Callback function 
@@ -112,10 +112,10 @@ class trajectory_visualization:
 				if ((abs(self.previous_pose_position.x - transform_mat[0,3]) > self.threshold)
 				 or (abs(self.previous_pose_position.y - transform_mat[1,3]) > self.threshold)
 				 or (abs(self.previous_pose_position.z - transform_mat[2,3]) > self.threshold)):
-					rospy.loginfo('Exceding threshold, adding pose to path')
+					rospy.logdebug('Exceding threshold, adding pose to path')
 					#Add current pose to path
 					self.actual_path_msg.header.stamp = rospy.Time.now()
-					self.actual_path_msg.header.frame_id = self.base_link
+					self.actual_path_msg.header.frame_id = self.root_link
 					pose_stamped_msg = PoseStamped()
 					pose_stamped_msg.pose.position.x = transform_mat[0,3]
 					pose_stamped_msg.pose.position.y = transform_mat[1,3]
