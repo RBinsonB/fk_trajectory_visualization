@@ -5,7 +5,7 @@
 A small tool for ROS, to display a robot planned and actual link movement in RViz using forward kinematics (and path messages). Thanks to [Joseph Coombe](https://answers.ros.org/question/281272/get-forward-kinematics-wo-tf-service-call-from-urdf-joint-angles-kinetic-python/) for giving a way to get forward kinematics from URDF and joint angles.
 
 <p align="center">
-  <img src="https://github.com/KTH-SML/kth_hebi_arm/blob/master/kth_hebi_arm_visualization/resource/documentation/pictures/pic_2.png" width="500"/>
+  <img src="resource/documentation/pictures/pic.png" width="500"/>
 </p>
 
 ## 2. Requirements
